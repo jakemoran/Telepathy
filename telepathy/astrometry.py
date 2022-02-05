@@ -5,7 +5,7 @@ import rawpy
 from astropy.io import fits
 from client import Client
 
-TIMEOUT = 180
+TIMEOUT = 600
 output = "output.fits"
 url = "http://nova.astrometry.net/api/"
 
@@ -33,6 +33,7 @@ def solve_image(img_filename: str, api_key: str, ra: float, dec: float, radius: 
         img = image_array[:, :, 1]
         newhdu = fits.PrimaryHDU(img)
         newhdu.writeto(output, overwrite=True)
+        print("Image successfully converted to FITS")
 
     c = Client(apiurl=url)
     c.login(api_key)
@@ -54,8 +55,9 @@ def solve_image(img_filename: str, api_key: str, ra: float, dec: float, radius: 
         raise UploadError("Image failed to upload.")
 
     print("Awaiting job submission...")
+    start = time.time()
     while True:
-        if time.time() - start_time > TIMEOUT:
+        if time.time() - start > TIMEOUT:
             raise TimeoutError
 
         jobid_list = requests.get(f"http://nova.astrometry.net/api/submissions/{subid}").json()["jobs"]

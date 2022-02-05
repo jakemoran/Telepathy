@@ -7,16 +7,10 @@
   "image_path": "C:/Users/jakem/Pictures/BackyardEOS",
   "FOV_width": 20,
   "targets": [{
-  "name": "Orion Nebula",
-  "ra": 83.822,
-  "dec": -5.391,
-  "exposure_length": 30,
-  "num_exposures": 120
-},{
-  "name": "Rosette Nebula",
-  "ra": 97.979,
-  "dec": 4.942,
-  "exposure_length": 60,
-  "num_exposures": 120
-}]
+    "name": "Dubhe",
+    "ra": 165.952,
+    "dec": 61.7482,
+    "exposure_length": 30,
+    "num_exposures": 120
+  }]
 }

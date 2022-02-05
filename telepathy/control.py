@@ -3,7 +3,7 @@ import time
 import numpy as np
 
 from astrometry import solve_image
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, PrivateAttr
 from typing import List, Any, Union, Optional
 from astropy.io import fits
 from pathlib import Path
@@ -65,6 +65,8 @@ class Session(BaseModel):
     focuser: Any = None
     filter_wheel: Any = None
 
+    _plate_solved: bool = PrivateAttr(False)
+
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
@@ -89,7 +91,7 @@ class Session(BaseModel):
 
         for i in range(attempts):
             print("Slewing to target...")
-            self.slew_telescope(ra=target.ra, dec=target.dec)
+            #self.slew_telescope(ra=target.ra, dec=target.dec)
 
             print("Taking image...")
             self.take_image(duration=exp_time, gain=gain, output=image_name)
@@ -114,6 +116,7 @@ class Session(BaseModel):
             #self.sync_telescope(ra=pointing_ra, dec=pointing_dec)
             if within_tolerance(error, tol):
                 print(f"Plate solve succeeded in {i + 1} attempt" + ("s" if i > 0 else ""))
+                self._plate_solved = True
                 break
             elif i == attempts - 1:
                 print("Attempt limit reached, aborting...")
@@ -122,6 +125,7 @@ class Session(BaseModel):
         if self.camera.Connected and self.camera.CameraState == 0:  # Camera state 0 implies camera is idle
             self.camera.Gain = gain
             self.camera.StartExposure(duration, True)
+            time.sleep(duration)
             start = time.time()
 
             while True:
@@ -144,6 +148,19 @@ class Session(BaseModel):
         img = self.camera.ImageArray
         newhdu = fits.PrimaryHDU(np.array(img))
         newhdu.writeto(output, overwrite=True)
+
+    def shoot_target(self, target: Target, terminate: bool = False):
+        if not self._plate_solved:
+            print("Warning: Pointing model not calibrated")
+        prefix = target.name.lower().replace(" ", "_")
+
+        self.slew_telescope(target.ra, target.dec)
+
+        for i in range(target.num_exposures):
+            self.take_image(duration=target.exposure_length, gain=9, output=f"{self.image_path}{prefix}{i}.fits")
+
+        if terminate:
+            self.end_session()
 
     @status_check
     def slew_telescope(self, ra: float, dec: float):
