@@ -1,15 +1,15 @@
 {
-  "connect_camera": false,
-  "connect_telescope": false,
+  "connect_camera": true,
+  "connect_telescope": true,
   "connect_focuser": false,
   "connect_filter_wheel": false,
   "apikey": "gltfewdeegosqcrx",
-  "image_path": "C:/Users/jakem/Pictures/BackyardEOS",
+  "image_path": "C:/Users/jakem/Pictures/BackyardEOS/",
   "FOV_width": 20,
   "targets": [{
-    "name": "Dubhe",
-    "ra": 165.952,
-    "dec": 61.7482,
+    "name": "Caph",
+    "ra": 2.296,
+    "dec": 59.154,
     "exposure_length": 30,
     "num_exposures": 120
   }]

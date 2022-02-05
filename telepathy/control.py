@@ -8,7 +8,13 @@ from typing import List, Any, Union, Optional
 from astropy.io import fits
 from pathlib import Path
 
-TIMEOUT = 60
+TIMEOUT = 30
+
+class CameraError(Exception):
+    pass
+
+class TelescopeError(Exception):
+    pass
 
 
 class Target(BaseModel):
@@ -43,17 +49,17 @@ def status_check(func):
         assert not tel.Slewing
         time.sleep(1)
         func(*args, **kwargs)
-        time.sleep(1)
+        time.sleep(3)
         assert tel.CanSync
         assert tel.CanSetTracking
     return wrapper
 
 
 class Session(BaseModel):
-    apikey: str = Field(..., description="Authentication key for astrometry api")
-    image_path: str = Field(..., description="Path to images")
-    FOV_width: float = Field(..., description="Width in degrees of camera FOV")
-    targets: List[Target] = Field(..., description="List of targets")
+    apikey: str
+    image_path: Union[str, Path]
+    FOV_width: float
+    targets: List[Target]
 
     connect_camera: bool = False
     connect_telescope: bool = False
@@ -76,7 +82,7 @@ class Session(BaseModel):
             self.telescope = self.telescope_init()
 
 
-    def plate_solve(self, target: Optional[Target] = None, image_name: str = "output.fits",
+    def plate_solve(self, target: Optional[Target] = None, image_name: Union[str, Path] = "output.fits",
                     exp_time: float = 0.5, gain: int = 9, tol: float = 1 / 60, attempts: int = 5):
 
         if target is None:
@@ -86,15 +92,13 @@ class Session(BaseModel):
                 print("Target list empty, aborting...")
                 return
 
-        if self.telescope.AtPark:
-            self.telescope.Unpark()
 
         for i in range(attempts):
-            print("Slewing to target...")
-            #self.slew_telescope(ra=target.ra, dec=target.dec)
 
-            print("Taking image...")
+            print(f"Slewing to {target.name}...")
+            self.slew_telescope(ra=target.ra, dec=target.dec)
             self.take_image(duration=exp_time, gain=gain, output=image_name)
+
             solution = solve_image(
                 img_filename=image_name,
                 api_key=self.apikey,
@@ -113,7 +117,7 @@ class Session(BaseModel):
             print(f"Pointing error - RA: {round(error[0], 4)}, DEC: {round(error[1], 4)}")
             print("Syncing...")
 
-            #self.sync_telescope(ra=pointing_ra, dec=pointing_dec)
+            self.sync_telescope(ra=pointing_ra, dec=pointing_dec)
             if within_tolerance(error, tol):
                 print(f"Plate solve succeeded in {i + 1} attempt" + ("s" if i > 0 else ""))
                 self._plate_solved = True
@@ -124,12 +128,15 @@ class Session(BaseModel):
     def take_image(self, duration: float, gain: int, output: Union[Path, str] = "output.fits"):
         if self.camera.Connected and self.camera.CameraState == 0:  # Camera state 0 implies camera is idle
             self.camera.Gain = gain
+            print(f"Taking {duration} second exposure at ISO {list(self.camera.Gains)[gain]}")
             self.camera.StartExposure(duration, True)
             time.sleep(duration)
             start = time.time()
 
             while True:
                 if time.time() - start > TIMEOUT:
+                    if self.camera.CanAbortExposure:
+                        self.camera.AbortExposure()
                     raise TimeoutError
 
                 if self.camera.ImageReady:
@@ -137,7 +144,7 @@ class Session(BaseModel):
                     break
                 time.sleep(1)
         else:
-            raise ConnectionError("Process failed: Camera unavailable")
+            raise CameraError("Process failed: Camera unavailable for exposure")
 
     def save_image(self, output: Union[Path, str]):
         if not self.camera.ImageReady:
@@ -162,13 +169,21 @@ class Session(BaseModel):
         if terminate:
             self.end_session()
 
+    def name_to_ind(self, name):
+        for i, target in enumerate(self.targets):
+            if target.name == name:
+                return i
+
     @status_check
     def slew_telescope(self, ra: float, dec: float):
         """RA and Dec should both be in degrees"""
+        if self.telescope.AtPark:
+            self.telescope.Unpark()
+
         ra = deg2hr(ra)
+        self.telescope.SlewToCoordinates(ra, dec)
         if not self.telescope.Tracking:
             self.telescope.Tracking = True
-        self.telescope.SlewToCoordinates(ra, dec)
 
     @status_check
     def sync_telescope(self, ra: float, dec: float):
@@ -177,6 +192,20 @@ class Session(BaseModel):
         if not self.telescope.Tracking:
             self.telescope.Tracking = True
         self.telescope.SyncToCoordinates(ra, dec)
+
+    @status_check
+    def park_telescope(self) -> None:
+        self.telescope.Park()
+
+    def end_session(self):
+        if self.camera.CameraState != 0:
+            self.camera.AbortExposure()
+        if not self.telescope.AtPark:
+            self.park_telescope()
+        self.telescope.connected = False
+        self.camera.connected = False
+        print("Session ended: Telescope has been parked. Camera and telescope have disconnected")
+
 
     @staticmethod
     def camera_init():
@@ -193,7 +222,7 @@ class Session(BaseModel):
         tel = win.Dispatch("EQMOD.Telescope")
         tel.Connected = True
         if tel.Connected:
-            print("Telescope connected: Waiting...")
+            print("Telescope connected")
             time.sleep(3)
             return tel
         else:
