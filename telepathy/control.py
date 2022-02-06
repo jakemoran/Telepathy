@@ -92,10 +92,14 @@ class Session(BaseModel):
                 print("Target list empty, aborting...")
                 return
 
+        if target.name is not None:
+            label = target.name
+        else:
+            label = f"RA: {target.ra}, DEC: {target.dec}"
 
         for i in range(attempts):
 
-            print(f"Slewing to {target.name}...")
+            print(f"Slewing to {label}...")
             self.slew_telescope(ra=target.ra, dec=target.dec)
             self.take_image(duration=exp_time, gain=gain, output=image_name)
 
@@ -179,6 +183,7 @@ class Session(BaseModel):
         """RA and Dec should both be in degrees"""
         if self.telescope.AtPark:
             self.telescope.Unpark()
+            print("Telescope Unparked")
 
         ra = deg2hr(ra)
         self.telescope.SlewToCoordinates(ra, dec)
@@ -196,6 +201,12 @@ class Session(BaseModel):
     @status_check
     def park_telescope(self) -> None:
         self.telescope.Park()
+
+        # Telescope.Park() is asynchronous, wait for it to finish
+        # before continuing
+        while self.telescope.Slewing:
+            time.sleep(1)
+
 
     def end_session(self):
         if self.camera.CameraState != 0:

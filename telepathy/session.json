@@ -4,13 +4,13 @@
   "connect_focuser": false,
   "connect_filter_wheel": false,
   "apikey": "gltfewdeegosqcrx",
-  "image_path": "C:/Users/jakem/Pictures/BackyardEOS/",
+  "image_path": "C:/Users/jakem/Pictures/Astrophoto/",
   "FOV_width": 20,
   "targets": [{
-    "name": "Caph",
-    "ra": 2.296,
-    "dec": 59.154,
+    "name": "Capella",
+    "ra": 79.178,
+    "dec": 45.997,
     "exposure_length": 30,
-    "num_exposures": 120
+    "num_exposures": 3
   }]
 }
