@@ -83,7 +83,7 @@ class Session(BaseModel):
 
 
     def plate_solve(self, target: Optional[Target] = None, image_name: Union[str, Path] = "output.fits",
-                    exp_time: float = 0.5, gain: int = 9, tol: float = 1 / 60, attempts: int = 5):
+                    exp_time: float = 0.5, gain: int = 9, tol: float = 1 / 30, attempts: int = 3):
 
         if target is None:
             try:
@@ -159,6 +159,7 @@ class Session(BaseModel):
         img = self.camera.ImageArray
         newhdu = fits.PrimaryHDU(np.array(img))
         newhdu.writeto(output, overwrite=True)
+        print("Image successfully saved")
 
     def shoot_target(self, target: Target, terminate: bool = False):
         if not self._plate_solved:

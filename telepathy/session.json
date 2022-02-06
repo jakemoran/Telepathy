@@ -4,13 +4,13 @@
   "connect_focuser": false,
   "connect_filter_wheel": false,
   "apikey": "gltfewdeegosqcrx",
-  "image_path": "C:/Users/jakem/Pictures/Astrophoto/",
+  "image_path": "D:/DCIM/100CANON/",
   "FOV_width": 20,
   "targets": [{
-    "name": "Capella",
-    "ra": 79.178,
-    "dec": 45.997,
-    "exposure_length": 30,
+    "name": "Heart and Soul",
+    "ra": 40.679,
+    "dec": 61.633,
+    "exposure_length": 60,
     "num_exposures": 3
   }]
 }
