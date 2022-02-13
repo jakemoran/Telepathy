@@ -6,7 +6,6 @@ from astropy.io import fits
 from client import Client
 
 TIMEOUT = 600
-output = "output.fits"
 url = "http://nova.astrometry.net/api/"
 
 class UploadError(Exception):
@@ -21,19 +20,23 @@ def get_results(jobid):
 
     return {"ra": img["calibration"]["ra"], "dec": img["calibration"]["dec"]}
 
+def convert_to_fits(img_filename, output):
+    with rawpy.imread(img_filename) as image:
+        image_array = image.postprocess()
+
+    img = image_array[:, :, 1]
+    newhdu = fits.PrimaryHDU(img)
+    newhdu.writeto(output, overwrite=True)
+    print("Image successfully converted to FITS")
+
 
 def solve_image(img_filename: str, api_key: str, ra: float, dec: float, radius: float):
     ext = img_filename.partition(".")[2]  # Get file extension
 
     # Convert .CR2 to .fits if necessary
     if ext == "CR2":
-        with rawpy.imread(img_filename) as image:
-            image_array = image.postprocess()
-
-        img = image_array[:, :, 1]
-        newhdu = fits.PrimaryHDU(img)
-        newhdu.writeto(output, overwrite=True)
-        print("Image successfully converted to FITS")
+        convert_to_fits(img_filename, "output.fits")
+        img_filename = "output.fits"
 
     c = Client(apiurl=url)
     c.login(api_key)
@@ -43,7 +46,7 @@ def solve_image(img_filename: str, api_key: str, ra: float, dec: float, radius: 
 
     # Attempt to upload image twice
     for i in range(2):
-        upres = c.upload(output, **upload_kwargs)
+        upres = c.upload(img_filename, **upload_kwargs)
         if upres["status"] == "success":
             subid = upres["subid"]
             print(f"Image uploaded successfully\nSubmission ID: {subid}")
