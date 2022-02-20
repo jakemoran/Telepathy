@@ -4,12 +4,12 @@
   "connect_focuser": false,
   "connect_filter_wheel": false,
   "apikey": "gltfewdeegosqcrx",
-  "image_path": "D:/DCIM/100CANON/",
+  "image_path": "D:/2022-2-18/",
   "FOV_width": 20,
   "targets": [{
-    "name": "Heart and Soul",
-    "ra": 40.679,
-    "dec": 61.633,
+    "name": "Dubhe",
+    "ra": 165.942,
+    "dec": 61.749,
     "exposure_length": 60,
     "num_exposures": 60
   }]
