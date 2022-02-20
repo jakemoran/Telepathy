@@ -4,12 +4,12 @@
   "connect_focuser": false,
   "connect_filter_wheel": false,
   "apikey": "gltfewdeegosqcrx",
-  "image_path": "D:/2022-2-18/",
+  "image_path": "D:/2022-02-20/",
   "FOV_width": 20,
   "targets": [{
-    "name": "Dubhe",
-    "ra": 165.942,
-    "dec": 61.749,
+    "name": "Pleiades Field",
+    "ra": 57.541,
+    "dec": 29.644,
     "exposure_length": 60,
     "num_exposures": 60
   }]
