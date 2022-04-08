@@ -1,5 +1,6 @@
 __pycache__
 test.py
+session.json
 .idea
 *.fits
 *.CR2
