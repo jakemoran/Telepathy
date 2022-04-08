@@ -2,7 +2,7 @@ import win32com.client as win
 import time
 import numpy as np
 
-from astrometry import solve_image
+from astrometry import solve_web, solve_local
 from pydantic import BaseModel, Field, PrivateAttr
 from typing import List, Any, Union, Optional
 from astropy.io import fits
@@ -83,7 +83,7 @@ class Session(BaseModel):
 
 
     def plate_solve(self, target: Optional[Target] = None, image_name: Union[str, Path] = "output.fits",
-                    exp_time: float = 10, gain: int = 9, tol: float = 1 / 60, attempts: int = 3):
+                    exp_time: float = 10, gain: int = 9, tol: float = 1 / 60, attempts: int = 3, web: bool = False):
 
         if target is None:
             try:
@@ -103,13 +103,21 @@ class Session(BaseModel):
             self.slew_telescope(ra=target.ra, dec=target.dec)
             self.take_image(duration=exp_time, gain=gain, output=image_name)
 
-            solution = solve_image(
-                img_filename=image_name,
-                api_key=self.apikey,
-                ra=target.ra,
-                dec=target.dec,
-                radius=self.FOV_width * 0.75
-            )
+            if web:
+                solution = solve_web(
+                    img_filename=image_name,
+                    api_key=self.apikey,
+                    ra=target.ra,
+                    dec=target.dec,
+                    radius=self.FOV_width * 0.75
+                )
+            else:
+                solution = solve_local(
+                    img_filename=image_name,
+                    ra=target.ra,
+                    dec=target.dec,
+                    radius=self.FOV_width * 0.75
+                )
 
             if solution is None:
                 print("Plate solving failed, aborting...")
